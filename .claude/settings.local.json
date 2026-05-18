@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Rename-Item *)",
+      "PowerShell(Copy-Item *)",
+      "Bash(dotnet new *)",
+      "Bash(Remove-Item -Path \"C:\\\\pets\\\\MyMemory\\\\LinkService\\\\src\\\\LinkService.Application\\\\UseCases\\\\CreateLink.cs\", \"C:\\\\pets\\\\MyMemory\\\\LinkService\\\\src\\\\LinkService.Application\\\\UseCases\\\\UpdateLink.cs\", \"C:\\\\pets\\\\MyMemory\\\\LinkService\\\\src\\\\LinkService.Application\\\\UseCases\\\\DeleteLink.cs\")",
+      "Bash(Remove-Item -Path \"C:\\\\pets\\\\MyMemory\\\\LinkService\\\\src\\\\LinkService.Application\\\\UseCases\")",
+      "Bash(dotnet build *)",
+      "PowerShell(dotnet build *)"
+    ]
+  }
+}

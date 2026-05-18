@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linkservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: linkservice
+  template:
+    metadata:
+      labels:
+        app: linkservice
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox
+          command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
+      containers:
+        - name: linkservice
+          image: linkservice:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ConnectionStrings__Postgres
+              valueFrom:
+                secretKeyRef:
+                  name: linkservice-secrets
+                  key: connection-string
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: linkservice
+spec:
+  type: NodePort
+  selector:
+    app: linkservice
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30080
