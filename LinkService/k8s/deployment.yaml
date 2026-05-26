@@ -28,6 +28,11 @@ spec:
                 secretKeyRef:
                   name: linkservice-secrets
                   key: connection-string
+            - name: Kafka__BootstrapServers
+              valueFrom:
+                secretKeyRef:
+                  name: linkservice-secrets
+                  key: kafka-bootstrap-servers
           readinessProbe:
             httpGet:
               path: /health
@@ -46,4 +51,4 @@ spec:
   ports:
     - port: 80
       targetPort: 8080
-      nodePort: 30080
+      nodePort: 30082

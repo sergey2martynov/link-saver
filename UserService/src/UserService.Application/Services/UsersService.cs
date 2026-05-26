@@ -1,11 +1,12 @@
 using UserService.Application.DTOs;
+using UserService.Application.Events;
 using UserService.Application.Exceptions;
 using UserService.Application.Ports;
 using UserService.Domain.Entities;
 
 namespace UserService.Application;
 
-public class UsersService(IUserRepository repository)
+public class UsersService(IUserRepository repository, IPasswordHasher passwordHasher, IUserEventPublisher eventPublisher)
 {
     private const int PageSize = 10;
 
@@ -38,6 +39,32 @@ public class UsersService(IUserRepository repository)
             ?? throw new UserNotFoundException(id);
 
         await repository.DeleteAsync(user.Id, ct);
+    }
+
+    public async Task<UserDto> RegisterWithPasswordAsync(RegisterWithPasswordDto dto, CancellationToken ct = default)
+    {
+        var existing = await repository.GetByEmailAsync(dto.Email.Trim().ToLowerInvariant(), ct);
+        if (existing is not null)
+            throw new EmailAlreadyTakenException(dto.Email);
+
+        var hash = passwordHasher.Hash(dto.Password);
+        var user = User.CreateWithPassword(dto.Email, dto.Name, hash);
+        await repository.AddAsync(user, ct);
+
+        // Publish domain event — the background publisher returns immediately (fire-and-forget).
+        await eventPublisher.PublishUserRegisteredAsync(
+            new UserRegisteredEvent(Guid.NewGuid(), DateTime.UtcNow, user.Id, user.Email!, user.Name), ct);
+
+        return ToDto(user);
+    }
+
+    public async Task<UserDto?> ValidateCredentialsAsync(ValidateCredentialsDto dto, CancellationToken ct = default)
+    {
+        var user = await repository.GetByEmailAsync(dto.Email.Trim().ToLowerInvariant(), ct);
+        if (user?.PasswordHash is null)
+            return null;
+
+        return passwordHasher.Verify(dto.Password, user.PasswordHash) ? ToDto(user) : null;
     }
 
     public async Task<UserDto> UpsertTelegramAsync(UpsertTelegramUserDto dto, CancellationToken ct = default)

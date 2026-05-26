@@ -6,5 +6,6 @@ public record LinkDto(
     string Title,
     string? Description,
     IReadOnlyCollection<string> Tags,
+    IReadOnlyCollection<string> SuggestedTags,
     DateTime CreatedAt,
     DateTime? UpdatedAt);

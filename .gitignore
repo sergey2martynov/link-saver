@@ -84,6 +84,20 @@ x86/
 # Publish Web Output
 *.[Pp]ublish.xml
 
+### Vue / Node
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+.env.local
+.env.*.local
+
+### Secrets — never commit real API keys
+NamingService/k8s/secret.yaml
+
+### Local IDE / tool state
+.claude/settings.local.json
+
 ### VS Code
 # VSCode settings (keep shared configuration)
 .vscode/*

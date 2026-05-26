@@ -8,17 +8,17 @@ namespace LinkService.Infrastructure.Repositories;
 public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
 {
     private const string SelectColumns =
-        "id, url, title, description, tags, created_at, updated_at";
+        "id, user_id, url, title, description, tags, suggested_tags, created_at, updated_at";
 
-    public async Task<(IReadOnlyList<Link> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<(IReadOnlyList<Link> Items, int TotalCount)> GetPagedAsync(Guid userId, int page, int pageSize, CancellationToken ct = default)
     {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         using var multi = await conn.QueryMultipleAsync(
             $"""
-            SELECT COUNT(*) FROM links;
-            SELECT {SelectColumns} FROM links ORDER BY created_at DESC LIMIT @PageSize OFFSET @Offset
+            SELECT COUNT(*) FROM links WHERE user_id = @UserId;
+            SELECT {SelectColumns} FROM links WHERE user_id = @UserId ORDER BY created_at DESC LIMIT @PageSize OFFSET @Offset
             """,
-            new { PageSize = pageSize, Offset = (page - 1) * pageSize });
+            new { UserId = userId, PageSize = pageSize, Offset = (page - 1) * pageSize });
 
         var totalCount = await multi.ReadSingleAsync<int>();
         var rows = await multi.ReadAsync<LinkRow>();
@@ -39,8 +39,8 @@ public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         await conn.ExecuteAsync(
             """
-            INSERT INTO links (id, url, title, description, tags, created_at, updated_at)
-            VALUES (@Id, @Url, @Title, @Description, @Tags, @CreatedAt, @UpdatedAt)
+            INSERT INTO links (id, user_id, url, title, description, tags, suggested_tags, created_at, updated_at)
+            VALUES (@Id, @UserId, @Url, @Title, @Description, @Tags, @SuggestedTags, @CreatedAt, @UpdatedAt)
             """,
             ToParams(link));
     }
@@ -52,7 +52,7 @@ public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
             """
             UPDATE links
             SET url = @Url, title = @Title, description = @Description,
-                tags = @Tags, updated_at = @UpdatedAt
+                tags = @Tags, suggested_tags = @SuggestedTags, updated_at = @UpdatedAt
             WHERE id = @Id
             """,
             ToParams(link));
@@ -66,21 +66,24 @@ public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
 
     private static object ToParams(Link link) => new
     {
-        link.Id, link.Url, link.Title, link.Description,
+        link.Id, link.UserId, link.Url, link.Title, link.Description,
         Tags = link.Tags.ToArray(),
+        SuggestedTags = link.SuggestedTags.ToArray(),
         link.CreatedAt, link.UpdatedAt
     };
 
     private static Link ToEntity(LinkRow row) =>
-        Link.Reconstitute(row.Id, row.Url, row.Title, row.Description, row.Tags, row.CreatedAt, row.UpdatedAt);
+        Link.Reconstitute(row.Id, row.UserId, row.Url, row.Title, row.Description, row.Tags, row.SuggestedTags, row.CreatedAt, row.UpdatedAt);
 
     private class LinkRow
     {
         public Guid Id { get; set; }
+        public Guid UserId { get; set; }
         public string Url { get; set; } = null!;
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
         public string[] Tags { get; set; } = [];
+        public string[] SuggestedTags { get; set; } = [];
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

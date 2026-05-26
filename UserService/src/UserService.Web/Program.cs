@@ -9,7 +9,9 @@ builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddScoped<UsersService>();
 builder.Services.AddInfrastructure(
-    builder.Configuration.GetConnectionString("Postgres")!);
+    builder.Configuration.GetConnectionString("Postgres")!,
+    // Kafka bootstrap servers — set via Kafka:BootstrapServers in appsettings or environment variables.
+    builder.Configuration["Kafka:BootstrapServers"]!);
 
 var app = builder.Build();
 
