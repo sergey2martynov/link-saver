@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddSingleton(_ => new NpgsqlDataSourceBuilder(connectionString).Build());
         services.AddScoped<ILinkRepository, LinkRepository>();
         services.AddScoped<ILinkDomainRepository, LinkDomainRepository>();
+        services.AddScoped<ITagRepository, TagRepository>();
 
         // Kafka: IProducer is thread-safe and designed to be a long-lived singleton.
         // It batches and compresses messages internally for efficiency.

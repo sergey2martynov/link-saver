@@ -1,6 +1,7 @@
 using FluentMigrator.Runner;
 using LinkService.Application;
 using LinkService.Application.Interfaces;
+using LinkService.Application.Services;
 using LinkService.Infrastructure;
 using LinkService.Web.Hubs;
 using LinkService.Web.Middleware;
@@ -13,6 +14,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ILinkNotifier, HubLinkNotifier>();
 builder.Services.AddScoped<LinksService>();
+builder.Services.AddScoped<TagsService>();
 builder.Services.AddInfrastructure(
     builder.Configuration.GetConnectionString("Postgres")!,
     builder.Configuration["Kafka:BootstrapServers"]!);

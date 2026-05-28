@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Confluent.Kafka;
 using LinkService.Application;
+using LinkService.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

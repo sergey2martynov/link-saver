@@ -1,9 +1,32 @@
+export interface TagDto {
+  id: string
+  name: string
+  color: string
+  startDate: string | null
+  endDate: string | null
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface CreateTagDto {
+  name: string
+  color: string
+  startDate?: string
+  endDate?: string
+}
+
+export interface UpdateTagDto {
+  name: string
+  color: string
+  startDate?: string
+  endDate?: string
+}
+
 export interface LinkDto {
   id: string
   url: string
   title: string
-  description: string | null
-  tags: string[]
+  tags: TagDto[]
   suggestedTags: string[]
   createdAt: string
   updatedAt: string | null
@@ -20,13 +43,11 @@ export interface PagedResult<T> {
 export interface CreateLinkDto {
   url: string
   title?: string
-  description?: string
-  tags?: string[]
+  tagIds?: string[]
 }
 
 export interface UpdateLinkDto {
   url: string
   title: string
-  description?: string
-  tags?: string[]
+  tagIds?: string[]
 }

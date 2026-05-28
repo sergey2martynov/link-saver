@@ -13,5 +13,5 @@ export const updateLink = (id: string, dto: UpdateLinkDto) =>
 export const deleteLink = (id: string) =>
   del<null>(`/api/links/${id}`)
 
-export const confirmTags = (id: string) =>
-  post<LinkDto>(`/api/links/${id}/tags/confirm`)
+export const dismissSuggestions = (id: string) =>
+  del<LinkDto>(`/api/links/${id}/suggestions`)

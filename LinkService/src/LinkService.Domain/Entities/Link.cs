@@ -6,19 +6,20 @@ public class Link
     public Guid UserId { get; set; }
     public string Url { get; private set; } = null!;
     public string Title { get; private set; } = null!;
-    public string? Description { get; private set; }
-    public IReadOnlyCollection<string> Tags => _tags.AsReadOnly();
+    public IReadOnlyCollection<Guid> TagIds => _tagIds.AsReadOnly();
+    public IReadOnlyCollection<Tag> Tags => _resolvedTags.AsReadOnly();
     public IReadOnlyCollection<string> SuggestedTags => _suggestedTags.AsReadOnly();
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
-    private readonly List<string> _tags = [];
+    private readonly List<Guid> _tagIds = [];
+    private readonly List<Tag> _resolvedTags = [];
     private readonly List<string> _suggestedTags = [];
 
     private Link() { }
 
-    public static Link Reconstitute(Guid id, Guid userId, string url, string title, string? description,
-        IEnumerable<string> tags, IEnumerable<string> suggestedTags, DateTime createdAt, DateTime? updatedAt)
+    public static Link Reconstitute(Guid id, Guid userId, string url, string title,
+        IEnumerable<Guid> tagIds, IEnumerable<string> suggestedTags, DateTime createdAt, DateTime? updatedAt)
     {
         var link = new Link
         {
@@ -26,16 +27,15 @@ public class Link
             UserId = userId,
             Url = url,
             Title = title,
-            Description = description,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
         };
-        link.SetTags(tags);
-        link.SetSuggestedTags(suggestedTags);
+        link._tagIds.AddRange(tagIds);
+        link._suggestedTags.AddRange(suggestedTags.Select(t => t.Trim().ToLowerInvariant()));
         return link;
     }
 
-    public static Link Create(Guid userId, string url, string? title = null, string? description = null)
+    public static Link Create(Guid userId, string url, string? title = null)
     {
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("URL cannot be empty.", nameof(url));
@@ -46,7 +46,6 @@ public class Link
             UserId = userId,
             Url = url,
             Title = title ?? string.Empty,
-            Description = description,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -58,7 +57,7 @@ public class Link
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Update(string url, string title, string? description)
+    public void Update(string url, string title)
     {
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("URL cannot be empty.", nameof(url));
@@ -67,31 +66,20 @@ public class Link
 
         Url = url;
         Title = title;
-        Description = description;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void SetTags(IEnumerable<string> tags)
+    public void SetTagIds(IEnumerable<Guid> tagIds)
     {
-        _tags.Clear();
-        foreach (var tag in tags)
-            AddTag(tag);
+        _tagIds.Clear();
+        _tagIds.AddRange(tagIds);
+        UpdatedAt = DateTime.UtcNow;
     }
 
-    public void AddTag(string tag)
+    public void SetResolvedTags(IEnumerable<Tag> tags)
     {
-        if (string.IsNullOrWhiteSpace(tag))
-            throw new ArgumentException("Tag cannot be empty.", nameof(tag));
-
-        var normalized = tag.Trim().ToLowerInvariant();
-
-        if (!_tags.Contains(normalized))
-            _tags.Add(normalized);
-    }
-
-    public void RemoveTag(string tag)
-    {
-        _tags.Remove(tag.Trim().ToLowerInvariant());
+        _resolvedTags.Clear();
+        _resolvedTags.AddRange(tags);
     }
 
     public void SetSuggestedTags(IEnumerable<string> tags)
@@ -101,9 +89,8 @@ public class Link
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void ConfirmTags()
+    public void ClearSuggestedTags()
     {
-        SetTags(_suggestedTags);
         _suggestedTags.Clear();
         UpdatedAt = DateTime.UtcNow;
     }

@@ -3,6 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NamingService", "NamingService", "{C1D2E3F4-A5B6-7890-CDEF-012345678904}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NamingService.Application", "NamingService\src\NamingService.Application\NamingService.Application.csproj", "{E1F2A3B4-C5D6-7890-EFA1-012345678904}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NamingService.Infrastructure", "NamingService\src\NamingService.Infrastructure\NamingService.Infrastructure.csproj", "{E1F2A3B4-C5D6-7890-EFA1-012345678905}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NamingService.Web", "NamingService\src\NamingService.Web\NamingService.Web.csproj", "{E1F2A3B4-C5D6-7890-EFA1-012345678906}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Gateway", "Gateway", "{C1D2E3F4-A5B6-7890-CDEF-012345678903}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gateway.Web", "Gateway\src\Gateway.Web\Gateway.Web.csproj", "{D1E2F3A4-B5C6-7890-DEFA-012345678903}"
@@ -69,6 +77,18 @@ Global
 		{D1E2F3A4-B5C6-7890-DEFA-012345678903}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D1E2F3A4-B5C6-7890-DEFA-012345678903}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D1E2F3A4-B5C6-7890-DEFA-012345678903}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678904}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678904}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678904}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678904}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678905}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678905}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678905}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678905}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678906}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678906}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678906}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1F2A3B4-C5D6-7890-EFA1-012345678906}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -83,5 +103,8 @@ Global
 		{B1C2D3E4-F5A6-7890-BCDE-F01234567895} = {C1D2E3F4-A5B6-7890-CDEF-012345678902}
 		{B1C2D3E4-F5A6-7890-BCDE-F01234567896} = {C1D2E3F4-A5B6-7890-CDEF-012345678902}
 		{D1E2F3A4-B5C6-7890-DEFA-012345678903} = {C1D2E3F4-A5B6-7890-CDEF-012345678903}
+		{E1F2A3B4-C5D6-7890-EFA1-012345678904} = {C1D2E3F4-A5B6-7890-CDEF-012345678904}
+		{E1F2A3B4-C5D6-7890-EFA1-012345678905} = {C1D2E3F4-A5B6-7890-CDEF-012345678904}
+		{E1F2A3B4-C5D6-7890-EFA1-012345678906} = {C1D2E3F4-A5B6-7890-CDEF-012345678904}
 	EndGlobalSection
 EndGlobal

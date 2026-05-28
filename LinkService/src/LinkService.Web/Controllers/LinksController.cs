@@ -1,5 +1,6 @@
 using LinkService.Application.DTOs;
 using LinkService.Application;
+using LinkService.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LinkService.Web.Controllers;
@@ -32,11 +33,11 @@ public class LinksController(LinksService linkService) : ControllerBase
         return Ok(result);
     }
 
-    [HttpPost("{id:guid}/tags/confirm")]
-    public async Task<IActionResult> ConfirmTags(Guid id, CancellationToken ct)
+    [HttpDelete("{id:guid}/suggestions")]
+    public async Task<IActionResult> DismissSuggestions(Guid id, CancellationToken ct)
     {
         if (!TryGetUserId(out var userId)) return Unauthorized();
-        var result = await linkService.ConfirmTagsAsync(userId, id, ct);
+        var result = await linkService.DismissSuggestionsAsync(userId, id, ct);
         return Ok(result);
     }
 

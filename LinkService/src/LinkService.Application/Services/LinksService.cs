@@ -6,7 +6,7 @@ using LinkService.Application.Ports;
 using LinkService.Domain.Entities;
 using Microsoft.Extensions.Logging;
 
-namespace LinkService.Application;
+namespace LinkService.Application.Services;
 
 public class LinksService(
     ILinkRepository repository,
@@ -25,10 +25,10 @@ public class LinksService(
 
     public async Task<LinkDto> CreateAsync(Guid userId, CreateLinkDto dto, CancellationToken ct = default)
     {
-        var link = Link.Create(userId, dto.Url, dto.Title, dto.Description);
+        var link = Link.Create(userId, dto.Url, dto.Title);
 
-        if (dto.Tags is { Count: > 0 })
-            link.SetTags(dto.Tags);
+        if (dto.TagIds is { Count: > 0 })
+            link.SetTagIds(dto.TagIds);
 
         var domain = new Uri(dto.Url).Host;
         var linkDomain = await domainRepository.FindByDomainAsync(domain, ct);
@@ -37,9 +37,8 @@ public class LinksService(
 
         await repository.AddAsync(link, ct);
 
-        // Publish domain event — the background publisher returns immediately (fire-and-forget).
         await eventPublisher.PublishLinkCreatedAsync(
-            new LinkCreatedEvent(Guid.NewGuid(), DateTime.UtcNow, link.Id, userId, link.Url, link.Title, link.Tags.ToList()), ct);
+            new LinkCreatedEvent(Guid.NewGuid(), DateTime.UtcNow, link.Id, userId, link.Url, link.Title, []), ct);
 
         return ToDto(link);
     }
@@ -52,10 +51,10 @@ public class LinksService(
         if (link.UserId != userId)
             throw new LinkNotFoundException(id);
 
-        link.Update(dto.Url, dto.Title, dto.Description);
+        link.Update(dto.Url, dto.Title);
 
-        if (dto.Tags is not null)
-            link.SetTags(dto.Tags);
+        if (dto.TagIds is not null)
+            link.SetTagIds(dto.TagIds);
 
         await repository.UpdateAsync(link, ct);
 
@@ -72,13 +71,11 @@ public class LinksService(
 
         await repository.DeleteAsync(link.Id, ct);
 
-        // Publish domain event after successful deletion — fire-and-forget.
         await eventPublisher.PublishLinkDeletedAsync(
             new LinkDeletedEvent(Guid.NewGuid(), DateTime.UtcNow, link.Id, link.UserId), ct);
     }
 
-    // Called by the Kafka consumer worker when NamingService publishes 'links.named'.
-    // Applies the AI-generated title and pushes a real-time update to the user's browser.
+    // Called by the Kafka consumer when NamingService publishes 'links.named'.
     public async Task ApplyNameAsync(Guid linkId, string name, CancellationToken ct = default)
     {
         var link = await repository.GetByIdAsync(linkId, ct);
@@ -93,8 +90,7 @@ public class LinksService(
         await notifier.NotifyLinkNamedAsync(link.Id, name, link.UserId, ct);
     }
 
-    // Called by the Kafka consumer worker when ClassifierService publishes 'links.classified'.
-    // Stores tags as suggestions — the user must confirm before they become final.
+    // Called by the Kafka consumer when ClassifierService publishes 'links.classified'.
     public async Task ApplySuggestedTagsAsync(Guid linkId, string[] tags, CancellationToken ct = default)
     {
         var link = await repository.GetByIdAsync(linkId, ct);
@@ -108,7 +104,7 @@ public class LinksService(
         await repository.UpdateAsync(link, ct);
     }
 
-    public async Task<LinkDto> ConfirmTagsAsync(Guid userId, Guid linkId, CancellationToken ct = default)
+    public async Task<LinkDto> DismissSuggestionsAsync(Guid userId, Guid linkId, CancellationToken ct = default)
     {
         var link = await repository.GetByIdAsync(linkId, ct)
             ?? throw new LinkNotFoundException(linkId);
@@ -116,11 +112,14 @@ public class LinksService(
         if (link.UserId != userId)
             throw new LinkNotFoundException(linkId);
 
-        link.ConfirmTags();
+        link.ClearSuggestedTags();
         await repository.UpdateAsync(link, ct);
         return ToDto(link);
     }
 
     private static LinkDto ToDto(Link link) =>
-        new(link.Id, link.Url, link.Title, link.Description, link.Tags, link.SuggestedTags, link.CreatedAt, link.UpdatedAt);
+        new(link.Id, link.Url, link.Title,
+            link.Tags.Select(TagsService.ToDto).ToList(),
+            link.SuggestedTags,
+            link.CreatedAt, link.UpdatedAt);
 }

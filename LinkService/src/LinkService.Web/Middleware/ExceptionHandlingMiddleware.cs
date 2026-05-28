@@ -11,7 +11,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         {
             await next(context);
         }
-        catch (LinkNotFoundException ex)
+        catch (Exception ex) when (ex is LinkNotFoundException or TagNotFoundException)
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             await context.Response.WriteAsJsonAsync(new ProblemDetails
