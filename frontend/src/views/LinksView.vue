@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getLinks, createLink, deleteLink, updateLink, dismissSuggestions } from '@/api/links'
 import { getTags, createTag, deleteTag } from '@/api/tags'
-import type { LinkDto, TagDto, PagedResult } from '@/api/types'
+import type { LinkDto, TagDto, LinkFilter, PagedResult } from '@/api/types'
 import { useLinksHub } from '@/composables/useLinksHub'
 
 const router = useRouter()
@@ -24,12 +24,35 @@ const tags = ref<TagDto[]>([])
 const showNewTag = ref(false)
 const newTagName = ref('')
 const newTagColor = ref('#4f6ef7')
-const newTagStart = ref('')
-const newTagEnd = ref('')
 const tagSaving = ref(false)
 
 // Tag picker per link
 const pickerLinkId = ref<string | null>(null)
+
+// Filters
+const filterTagIds = ref<string[]>([])
+const filterDateFrom = ref('')
+const filterDateTo = ref('')
+
+function activeFilter(): LinkFilter | undefined {
+  const f: LinkFilter = {}
+  if (filterTagIds.value.length) f.tagIds = filterTagIds.value
+  if (filterDateFrom.value) f.dateFrom = filterDateFrom.value
+  if (filterDateTo.value) f.dateTo = filterDateTo.value
+  return Object.keys(f).length ? f : undefined
+}
+
+function toggleFilterTag(id: string) {
+  filterTagIds.value = filterTagIds.value.includes(id)
+    ? filterTagIds.value.filter((t) => t !== id)
+    : [...filterTagIds.value, id]
+}
+
+function clearFilters() {
+  filterTagIds.value = []
+  filterDateFrom.value = ''
+  filterDateTo.value = ''
+}
 
 useLinksHub((linkId, name) => {
   if (!paged.value) return
@@ -42,12 +65,14 @@ useLinksHub((linkId, name) => {
 async function loadPage(p: number) {
   loadError.value = ''
   try {
-    paged.value = await getLinks(p)
+    paged.value = await getLinks(p, activeFilter())
     page.value = p
   } catch (e: unknown) {
     loadError.value = e instanceof Error ? e.message : 'Failed to load links'
   }
 }
+
+watch([filterTagIds, filterDateFrom, filterDateTo], () => loadPage(1))
 
 async function loadTags() {
   try {
@@ -88,14 +113,10 @@ async function submitCreateTag() {
     const tag = await createTag({
       name: newTagName.value.trim(),
       color: newTagColor.value,
-      startDate: newTagStart.value || undefined,
-      endDate: newTagEnd.value || undefined,
     })
     tags.value = [...tags.value, tag]
     newTagName.value = ''
     newTagColor.value = '#4f6ef7'
-    newTagStart.value = ''
-    newTagEnd.value = ''
     showNewTag.value = false
   } catch {
     // ignore
@@ -240,8 +261,6 @@ onBeforeUnmount(() => {
             <input v-model="newTagColor" type="color" class="color-input" />
             <span class="color-preview" :style="{ background: newTagColor }" />
           </label>
-          <input v-model="newTagStart" type="date" title="Start date (optional)" />
-          <input v-model="newTagEnd" type="date" title="End date (optional)" />
           <button type="submit" :disabled="tagSaving" class="btn-primary btn-sm">Add</button>
         </form>
 
@@ -255,15 +274,51 @@ onBeforeUnmount(() => {
           >
             <span class="tag-dot" />
             {{ tag.name }}
-            <span v-if="tag.startDate || tag.endDate" class="tag-period">
-              {{ tag.startDate ? tag.startDate.slice(0, 7) : '?' }}
-              –
-              {{ tag.endDate ? tag.endDate.slice(0, 7) : '?' }}
-            </span>
             <button class="tag-delete-btn" @click="handleDeleteTag(tag.id)" aria-label="Delete tag">✕</button>
           </span>
         </div>
         <p v-else-if="!showNewTag" class="empty-tags">No tags yet.</p>
+      </section>
+
+      <!-- Filters -->
+      <section v-if="tags.length" class="card filter-card">
+        <div class="filter-header">
+          <h2>Filter</h2>
+          <button
+            v-if="filterTagIds.length || filterDateFrom || filterDateTo"
+            class="btn-ghost btn-sm"
+            @click="clearFilters"
+          >
+            Clear
+          </button>
+        </div>
+
+        <div class="filter-body">
+          <div class="filter-tags">
+            <span
+              v-for="tag in tags"
+              :key="tag.id"
+              class="filter-tag"
+              :class="{ active: filterTagIds.includes(tag.id) }"
+              :style="{ '--tag-color': tag.color }"
+              @click="toggleFilterTag(tag.id)"
+            >
+              <span class="tag-dot" />
+              {{ tag.name }}
+            </span>
+          </div>
+
+          <div class="filter-dates">
+            <label class="date-label">
+              From
+              <input v-model="filterDateFrom" type="date" class="date-input" />
+            </label>
+            <label class="date-label">
+              To
+              <input v-model="filterDateTo" type="date" class="date-input" />
+            </label>
+          </div>
+        </div>
       </section>
 
       <!-- Links list -->
@@ -452,14 +507,6 @@ main {
   font-size: 0.875rem;
 }
 
-.new-tag-form input[type='date'] {
-  padding: 0.45rem 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font: inherit;
-  font-size: 0.8rem;
-  color: #555;
-}
 
 .new-tag-form input:focus {
   outline: none;
@@ -523,11 +570,6 @@ main {
   flex-shrink: 0;
 }
 
-.tag-period {
-  font-size: 0.68rem;
-  opacity: 0.7;
-  margin-left: 0.1rem;
-}
 
 .tag-delete-btn {
   background: none;
@@ -548,6 +590,89 @@ main {
 .empty-tags {
   font-size: 0.85rem;
   color: #aaa;
+}
+
+/* Filter */
+.filter-card {
+  padding-bottom: 1rem;
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.filter-header h2 {
+  margin-bottom: 0;
+}
+
+.filter-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem 0.22rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid color-mix(in srgb, var(--tag-color) 30%, #fff);
+  background: #fff;
+  color: #666;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.filter-tag:hover {
+  border-color: var(--tag-color);
+  color: color-mix(in srgb, var(--tag-color) 80%, #000);
+}
+
+.filter-tag.active {
+  background: color-mix(in srgb, var(--tag-color) 12%, #fff);
+  color: color-mix(in srgb, var(--tag-color) 80%, #000);
+  border-color: var(--tag-color);
+}
+
+.filter-dates {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.date-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.date-input {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: #333;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: #4f6ef7;
 }
 
 /* Links list */

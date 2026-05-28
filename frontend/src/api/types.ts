@@ -2,8 +2,6 @@ export interface TagDto {
   id: string
   name: string
   color: string
-  startDate: string | null
-  endDate: string | null
   createdAt: string
   updatedAt: string | null
 }
@@ -11,15 +9,11 @@ export interface TagDto {
 export interface CreateTagDto {
   name: string
   color: string
-  startDate?: string
-  endDate?: string
 }
 
 export interface UpdateTagDto {
   name: string
   color: string
-  startDate?: string
-  endDate?: string
 }
 
 export interface LinkDto {
@@ -38,6 +32,12 @@ export interface PagedResult<T> {
   pageSize: number
   totalCount: number
   totalPages: number
+}
+
+export interface LinkFilter {
+  tagIds?: string[]
+  dateFrom?: string
+  dateTo?: string
 }
 
 export interface CreateLinkDto {

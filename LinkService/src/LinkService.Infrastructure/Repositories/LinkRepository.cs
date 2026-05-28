@@ -1,4 +1,5 @@
 using Dapper;
+using LinkService.Application.DTOs;
 using LinkService.Application.Ports;
 using LinkService.Domain.Entities;
 using Npgsql;
@@ -8,19 +9,40 @@ namespace LinkService.Infrastructure.Repositories;
 public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
 {
     private const string SelectLinkColumns =
-        "id, user_id, url, title, suggested_tags, created_at, updated_at";
+        "l.id, l.user_id, l.url, l.title, l.suggested_tags, l.created_at, l.updated_at";
 
     public async Task<(IReadOnlyList<Link> Items, int TotalCount)> GetPagedAsync(
-        Guid userId, int page, int pageSize, CancellationToken ct = default)
+        Guid userId, int page, int pageSize, LinkFilterDto? filter = null, CancellationToken ct = default)
     {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
 
-        using var multi = await conn.QueryMultipleAsync(
-            $"""
-            SELECT COUNT(*) FROM links WHERE user_id = @UserId;
-            SELECT {SelectLinkColumns} FROM links WHERE user_id = @UserId ORDER BY created_at DESC LIMIT @PageSize OFFSET @Offset
-            """,
-            new { UserId = userId, PageSize = pageSize, Offset = (page - 1) * pageSize });
+        var conditions = new List<string> { "l.user_id = @UserId" };
+        if (filter?.TagIds is { Length: > 0 })
+            conditions.Add("EXISTS (SELECT 1 FROM link_tags lt WHERE lt.link_id = l.id AND lt.tag_id = ANY(@TagIds))");
+        if (filter?.DateFrom.HasValue == true)
+            conditions.Add("l.created_at >= @DateFrom");
+        if (filter?.DateTo.HasValue == true)
+            conditions.Add("l.created_at < @DateTo");
+
+        var where = string.Join(" AND ", conditions);
+        var sql = $"""
+            SELECT COUNT(*) FROM links l WHERE {where};
+            SELECT {SelectLinkColumns} FROM links l WHERE {where} ORDER BY l.created_at DESC LIMIT @PageSize OFFSET @Offset
+            """;
+
+        // DateTo is treated as exclusive end-of-day: add 1 day so "to 2026-05-28" includes the whole day
+        var dateToExclusive = filter?.DateTo?.Date.AddDays(1);
+
+        using var multi = await conn.QueryMultipleAsync(sql,
+            new
+            {
+                UserId = userId,
+                TagIds = filter?.TagIds,
+                DateFrom = filter?.DateFrom,
+                DateTo = dateToExclusive,
+                PageSize = pageSize,
+                Offset = (page - 1) * pageSize,
+            });
 
         var totalCount = await multi.ReadSingleAsync<int>();
         var rows = (await multi.ReadAsync<LinkRow>()).ToList();
@@ -37,7 +59,7 @@ public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
         await using var conn = await dataSource.OpenConnectionAsync(ct);
 
         var row = await conn.QuerySingleOrDefaultAsync<LinkRow>(
-            $"SELECT {SelectLinkColumns} FROM links WHERE id = @Id",
+            $"SELECT {SelectLinkColumns} FROM links l WHERE l.id = @Id",
             new { Id = id });
 
         if (row is null) return null;
@@ -110,7 +132,7 @@ public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
     {
         var rows = await conn.QueryAsync<LinkTagRow>(
             """
-            SELECT lt.link_id, t.id, t.user_id, t.name, t.color, t.start_date, t.end_date, t.created_at, t.updated_at
+            SELECT lt.link_id, t.id, t.user_id, t.name, t.color, t.created_at, t.updated_at
             FROM link_tags lt
             JOIN tags t ON t.id = lt.tag_id
             WHERE lt.link_id = ANY(@LinkIds)
@@ -122,8 +144,7 @@ public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
         {
             if (!result.TryGetValue(row.LinkId, out var list))
                 result[row.LinkId] = list = [];
-            list.Add(Tag.Reconstitute(row.Id, row.UserId, row.Name, row.Color,
-                row.StartDate, row.EndDate, row.CreatedAt, row.UpdatedAt));
+            list.Add(Tag.Reconstitute(row.Id, row.UserId, row.Name, row.Color, row.CreatedAt, row.UpdatedAt));
         }
         return result;
     }
@@ -165,8 +186,6 @@ public class LinkRepository(NpgsqlDataSource dataSource) : ILinkRepository
         public Guid UserId { get; set; }
         public string Name { get; set; } = null!;
         public string Color { get; set; } = null!;
-        public DateTime? StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

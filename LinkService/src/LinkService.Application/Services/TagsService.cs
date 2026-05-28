@@ -15,7 +15,7 @@ public class TagsService(ITagRepository repository)
 
     public async Task<TagDto> CreateAsync(Guid userId, CreateTagDto dto, CancellationToken ct = default)
     {
-        var tag = Tag.Create(userId, dto.Name, dto.Color, dto.StartDate, dto.EndDate);
+        var tag = Tag.Create(userId, dto.Name, dto.Color);
         await repository.AddAsync(tag, ct);
         return ToDto(tag);
     }
@@ -25,7 +25,7 @@ public class TagsService(ITagRepository repository)
         var tag = await repository.GetByIdAsync(id, ct) ?? throw new TagNotFoundException(id);
         if (tag.UserId != userId) throw new TagNotFoundException(id);
 
-        tag.Update(dto.Name, dto.Color, dto.StartDate, dto.EndDate);
+        tag.Update(dto.Name, dto.Color);
         await repository.UpdateAsync(tag, ct);
         return ToDto(tag);
     }
@@ -39,5 +39,5 @@ public class TagsService(ITagRepository repository)
     }
 
     internal static TagDto ToDto(Tag tag) =>
-        new(tag.Id, tag.Name, tag.Color, tag.StartDate, tag.EndDate, tag.CreatedAt, tag.UpdatedAt);
+        new(tag.Id, tag.Name, tag.Color, tag.CreatedAt, tag.UpdatedAt);
 }

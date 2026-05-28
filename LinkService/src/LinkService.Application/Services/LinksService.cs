@@ -17,9 +17,9 @@ public class LinksService(
 {
     private const int PageSize = 10;
 
-    public async Task<PagedResult<LinkDto>> GetPagedAsync(Guid userId, int page, CancellationToken ct = default)
+    public async Task<PagedResult<LinkDto>> GetPagedAsync(Guid userId, int page, LinkFilterDto? filter = null, CancellationToken ct = default)
     {
-        var (items, totalCount) = await repository.GetPagedAsync(userId, page, PageSize, ct);
+        var (items, totalCount) = await repository.GetPagedAsync(userId, page, PageSize, filter, ct);
         return new PagedResult<LinkDto>(items.Select(ToDto).ToList(), page, PageSize, totalCount);
     }
 

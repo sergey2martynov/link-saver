@@ -12,8 +12,6 @@ public class CreateTagsTable : Migration
             .WithColumn("user_id").AsGuid().NotNullable()
             .WithColumn("name").AsString(100).NotNullable()
             .WithColumn("color").AsString(20).NotNullable()
-            .WithColumn("start_date").AsDate().Nullable()
-            .WithColumn("end_date").AsDate().Nullable()
             .WithColumn("created_at").AsDateTime().NotNullable()
             .WithColumn("updated_at").AsDateTime().Nullable();
 

@@ -11,7 +11,7 @@ public class TagRepository(NpgsqlDataSource dataSource) : ITagRepository
     {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         var rows = await conn.QueryAsync<TagRow>(
-            "SELECT id, user_id, name, color, start_date, end_date, created_at, updated_at FROM tags WHERE user_id = @UserId ORDER BY name",
+            "SELECT id, user_id, name, color, created_at, updated_at FROM tags WHERE user_id = @UserId ORDER BY name",
             new { UserId = userId });
         return rows.Select(ToEntity).ToList();
     }
@@ -20,7 +20,7 @@ public class TagRepository(NpgsqlDataSource dataSource) : ITagRepository
     {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         var row = await conn.QuerySingleOrDefaultAsync<TagRow>(
-            "SELECT id, user_id, name, color, start_date, end_date, created_at, updated_at FROM tags WHERE id = @Id",
+            "SELECT id, user_id, name, color, created_at, updated_at FROM tags WHERE id = @Id",
             new { Id = id });
         return row is null ? null : ToEntity(row);
     }
@@ -29,7 +29,7 @@ public class TagRepository(NpgsqlDataSource dataSource) : ITagRepository
     {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         await conn.ExecuteAsync(
-            "INSERT INTO tags (id, user_id, name, color, start_date, end_date, created_at, updated_at) VALUES (@Id, @UserId, @Name, @Color, @StartDate, @EndDate, @CreatedAt, @UpdatedAt)",
+            "INSERT INTO tags (id, user_id, name, color, created_at, updated_at) VALUES (@Id, @UserId, @Name, @Color, @CreatedAt, @UpdatedAt)",
             ToParams(tag));
     }
 
@@ -37,7 +37,7 @@ public class TagRepository(NpgsqlDataSource dataSource) : ITagRepository
     {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         await conn.ExecuteAsync(
-            "UPDATE tags SET name = @Name, color = @Color, start_date = @StartDate, end_date = @EndDate, updated_at = @UpdatedAt WHERE id = @Id",
+            "UPDATE tags SET name = @Name, color = @Color, updated_at = @UpdatedAt WHERE id = @Id",
             ToParams(tag));
     }
 
@@ -49,12 +49,11 @@ public class TagRepository(NpgsqlDataSource dataSource) : ITagRepository
 
     private static object ToParams(Tag tag) => new
     {
-        tag.Id, tag.UserId, tag.Name, tag.Color,
-        tag.StartDate, tag.EndDate, tag.CreatedAt, tag.UpdatedAt
+        tag.Id, tag.UserId, tag.Name, tag.Color, tag.CreatedAt, tag.UpdatedAt
     };
 
     private static Tag ToEntity(TagRow row) =>
-        Tag.Reconstitute(row.Id, row.UserId, row.Name, row.Color, row.StartDate, row.EndDate, row.CreatedAt, row.UpdatedAt);
+        Tag.Reconstitute(row.Id, row.UserId, row.Name, row.Color, row.CreatedAt, row.UpdatedAt);
 
     private class TagRow
     {
@@ -62,8 +61,6 @@ public class TagRepository(NpgsqlDataSource dataSource) : ITagRepository
         public Guid UserId { get; set; }
         public string Name { get; set; } = null!;
         public string Color { get; set; } = null!;
-        public DateTime? StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

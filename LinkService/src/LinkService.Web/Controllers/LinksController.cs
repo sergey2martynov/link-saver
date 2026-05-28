@@ -1,5 +1,4 @@
 using LinkService.Application.DTOs;
-using LinkService.Application;
 using LinkService.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,11 +9,19 @@ namespace LinkService.Web.Controllers;
 public class LinksController(LinksService linkService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetPaged([FromQuery] int page = 1, CancellationToken ct = default)
+    public async Task<IActionResult> GetPaged(
+        [FromQuery] int page = 1,
+        [FromQuery] Guid[]? tagIds = null,
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        CancellationToken ct = default)
     {
         if (!TryGetUserId(out var userId)) return Unauthorized();
         if (page < 1) return BadRequest("Page must be >= 1.");
-        return Ok(await linkService.GetPagedAsync(userId, page, ct));
+        var filter = tagIds?.Length > 0 || dateFrom.HasValue || dateTo.HasValue
+            ? new LinkFilterDto(tagIds, dateFrom, dateTo)
+            : null;
+        return Ok(await linkService.GetPagedAsync(userId, page, filter, ct));
     }
 
     [HttpPost]
